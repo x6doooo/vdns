@@ -110,8 +110,6 @@ var rows = [
     }]
 ];
 
-
-
 function VDNS() {}
 VDNS.prototype.set = function(selector) {
     this.container = d3.select(selector);
