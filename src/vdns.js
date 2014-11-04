@@ -18,49 +18,65 @@
         return a;
     }
 
-    function toSideEnd(data, x, whichSide, xHandler) {
-        var anotherSide = {
-            right: 'left',
-            left: 'right'
-        }[whichSide];
+    function toSideEnd(data, x, whichSide, changeMap, xHandler) {
         var tem;
         var cur;
         var sides;
         var temIdxs = [0];
-        var currentChangeMap = {};
-        var lastChangeMap;
         // todo: 每一列的修改纪录都记下来 最后再重置一遍
         while(x >= 0 && x < data.length) {
-            lastChangeMap = currentChangeMap;
-            currentChangeMap = {};
+            changeMap[x] = {};
             tem = [];
             sides = [];
             $.each(temIdxs, function(k, v) {
                 cur = data[x][v];
-                if (cur && cur[whichSide]) {
-                    sides = sides.concat(cur[whichSide]);
-                }
-                if (cur && cur[anotherSide]) {
-                    $.each(cur[anotherSide], function(k2, v2) {
-                        cur[anotherSide][k2] = lastChangeMap[v2];
-                    });
-                }
+                sides = sides.concat(cur[whichSide]);
                 tem.push(cur);
-                currentChangeMap[v] = tem.length - 1;
+                changeMap[x][v] = tem.length - 1;
             });
             data[x] = tem;
             temIdxs = uniqArray(sides);
             x = xHandler(x);
-
         }
     }
 
-    function getCurrentData(data, x) {
-        toSideEnd(data, x, 'right', function(x) {
+    function getCurrentData(data, x, old) {
+        var changeMap = [];
+        toSideEnd(data, x, 'right', changeMap, function(x) {
             return x + 1;
         });
-        toSideEnd(data, x, 'left', function(x) {
+        toSideEnd(data, x, 'left', changeMap, function(x) {
             return x - 1;
+        });
+        changeMap[x][old] = 0;
+        var tem;
+        var cur;
+        $.each(data, function(k, v) {
+            $.each(v, function(i, d) {
+                tem = [];
+                if (d.left) {
+                    $.each(d.left, function(n, lft) {
+                        cur = changeMap[k - 1][lft];
+                        if (typeof cur === 'nubmer') {
+                            tem.push(cur);
+                        }
+                    });
+                    d.left = tem;
+                }
+                tem = [];
+                if (d.right) {
+                    $.each(d.right, function(n, rgt) {
+                        cur = changeMap[k + 1][rgt];
+                        if (k === 0) {
+                            console.log(changeMap[k + 1]);
+                        }
+                        if (typeof cur === 'number') {
+                            tem.push(cur);
+                        }
+                    });
+                    d.right = tem;
+                }
+            });
         });
         return data;
     }
@@ -118,11 +134,6 @@
             svg.selectAll('path').remove();
             svg.selectAll('g').remove();
 
-            var gs;
-            if (svg.selectAll('g')[0].length) {
-                gs = svg.selectAll('g')[0];
-                //return;
-            }
             $.each(srcData, function(idx, v) {
                 $.each(v, function(i, d) {
                     if (!d.right) return;
@@ -151,16 +162,11 @@
                     });
                 });
 
-                var circles;
-                if (gs) {
-                    circles = gs[idx].select('circle').data(v).enter().append('circle');
-                } else {
-                    circles = svg.append('g')
-                        .selectAll('circle')
-                        .data(v)
-                        .enter()
-                        .append('circle')
-                }
+                var circles = svg.append('g')
+                    .selectAll('circle')
+                    .data(v)
+                    .enter()
+                    .append('circle');
                 circles.attr({
                     r: 5,
                     fill: '#fff',
@@ -185,7 +191,7 @@
                 var i = $(this).attr('data-i');
                 var data = $.extend([], self.__sourceData__, true);
                 data[pi] = [data[pi][i]];
-                data = getCurrentData(data, pi * 1);
+                data = getCurrentData(data, pi * 1, i);
                 console.log(data);
                 self.load(data);
             });
