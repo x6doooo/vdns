@@ -19,45 +19,50 @@
     }
 
     function toSideEnd(data, x, whichSide, xHandler) {
-        var c = data[x][0];
-
-        if (!c[whichSide]) return;
-        x = xHandler(x);
-        var temIdxs = c[whichSide];
+        var anotherSide = {
+            right: 'left',
+            left: 'right'
+        }[whichSide];
         var tem;
         var cur;
         var sides;
-        do {
+        var temIdxs = [0];
+        var currentChangeMap = {};
+        var lastChangeMap;
+        // todo: 每一列的修改纪录都记下来 最后再重置一遍
+        while(x >= 0 && x < data.length) {
+            lastChangeMap = currentChangeMap;
+            currentChangeMap = {};
             tem = [];
             sides = [];
             $.each(temIdxs, function(k, v) {
                 cur = data[x][v];
-                if (cur[whichSide]) {
+                if (cur && cur[whichSide]) {
                     sides = sides.concat(cur[whichSide]);
                 }
+                if (cur && cur[anotherSide]) {
+                    $.each(cur[anotherSide], function(k2, v2) {
+                        cur[anotherSide][k2] = lastChangeMap[v2];
+                    });
+                }
                 tem.push(cur);
+                currentChangeMap[v] = tem.length - 1;
             });
             data[x] = tem;
             temIdxs = uniqArray(sides);
             x = xHandler(x);
-        } while(x >= 0 && x < data.length);
-    }
 
-    function toRight(data, x) {
-        toSideEnd(data, x, 'right', function(x) {
-            return x + 1;
-        });
-    }
-
-    function toLeft(data, x) {
-        toSideEnd(data, x, 'left', function(x) {
-            return x - 1;
-        });
+        }
     }
 
     function getCurrentData(data, x) {
-        toLeft(data, x);
-        toRight(data, x);
+        toSideEnd(data, x, 'right', function(x) {
+            return x + 1;
+        });
+        toSideEnd(data, x, 'left', function(x) {
+            return x - 1;
+        });
+        return data;
     }
 
     function VDNS(selector, width, height) {
@@ -89,6 +94,7 @@
         },
         load: function(data) {
             this.__sourceData__ = data;
+            this.render();
         },
         render: function() {
             var self = this;
@@ -109,6 +115,14 @@
                 return p * lineHeight + boxPadding;
             };
 
+            svg.selectAll('path').remove();
+            svg.selectAll('g').remove();
+
+            var gs;
+            if (svg.selectAll('g')[0].length) {
+                gs = svg.selectAll('g')[0];
+                //return;
+            }
             $.each(srcData, function(idx, v) {
                 $.each(v, function(i, d) {
                     if (!d.right) return;
@@ -136,27 +150,34 @@
                             .attr('d', desc);
                     });
                 });
-                svg.append('g')
-                    .selectAll('circle')
-                    .data(v)
-                    .enter()
-                    .append('circle')
-                    .attr({
-                        r: 5,
-                        fill: '#fff',
-                        stroke: '#08c',
-                        'stroke-width': 2,
-                        cx: function(d, i) {
-                            return getX(idx);
-                        },
-                        cy: function(d, i) {
-                            $(this).attr({
-                                'data-pi': idx,
-                                'data-i': i
-                            });
-                            return getY(i);
-                        }
-                    });
+
+                var circles;
+                if (gs) {
+                    circles = gs[idx].select('circle').data(v).enter().append('circle');
+                } else {
+                    circles = svg.append('g')
+                        .selectAll('circle')
+                        .data(v)
+                        .enter()
+                        .append('circle')
+                }
+                circles.attr({
+                    r: 5,
+                    fill: '#fff',
+                    stroke: '#08c',
+                    'stroke-width': 2,
+                    cx: function(d, i) {
+                        return getX(idx);
+                    },
+                    cy: function(d, i) {
+                        $(this).attr({
+                            'data-pi': idx,
+                            'data-i': i
+                        });
+                        return getY(i);
+                    }
+                });
+
             });
 
             svg.selectAll('circle').on('click', function() {
@@ -164,8 +185,9 @@
                 var i = $(this).attr('data-i');
                 var data = $.extend([], self.__sourceData__, true);
                 data[pi] = [data[pi][i]];
-                getCurrentData(data, pi * 1);
+                data = getCurrentData(data, pi * 1);
                 console.log(data);
+                self.load(data);
             });
 
         }
