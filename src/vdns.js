@@ -194,6 +194,7 @@
                             return getY(i);
                         }
                     });
+                var anchor = idx < 3 ? 'end' : 'start';
                 g.selectAll('text')
                     .data(v)
                     .enter()
@@ -208,7 +209,7 @@
                         y: function(d, i) {
                             return getY(i);
                         },
-                        'text-anchor': 'middle',
+                        'text-anchor': anchor,
                         'font-size': 12
                     });
 
@@ -221,7 +222,6 @@
                 var data = $.extend([], self.__sourceData__, true);
                 data[pi] = [data[pi][i]];
                 data = getCurrentData(data, pi * 1, i);
-                console.log(data);
                 self.load(data);
             });
 
