@@ -2,7 +2,7 @@
  *  VDNS
  */
 
-(function() {
+(function(window, undefined) {
 
     // util
     function uniqArray(arr) {
@@ -16,6 +16,48 @@
             a.push(len);
         }
         return a;
+    }
+
+    function toSideEnd(data, x, whichSide, xHandler) {
+        var c = data[x][0];
+
+        if (!c[whichSide]) return;
+        x = xHandler(x);
+        var temIdxs = c[whichSide];
+        var tem;
+        var cur;
+        var sides;
+        do {
+            tem = [];
+            sides = [];
+            $.each(temIdxs, function(k, v) {
+                cur = data[x][v];
+                if (cur[whichSide]) {
+                    sides = sides.concat(cur[whichSide]);
+                }
+                tem.push(cur);
+            });
+            data[x] = tem;
+            temIdxs = uniqArray(sides);
+            x = xHandler(x);
+        } while(x >= 0 && x < data.length);
+    }
+
+    function toRight(data, x) {
+        toSideEnd(data, x, 'right', function(x) {
+            return x + 1;
+        });
+    }
+
+    function toLeft(data, x) {
+        toSideEnd(data, x, 'left', function(x) {
+            return x - 1;
+        });
+    }
+
+    function getCurrentData(data, x) {
+        toLeft(data, x);
+        toRight(data, x);
     }
 
     function VDNS(selector, width, height) {
@@ -36,6 +78,14 @@
                 width: width || 800,
                 height: height || 600
             });
+            self.config();
+        },
+        config: function(cfg) {
+            cfg = cfg || {};
+            this.__config__ = $.extend({
+                boxPadding: 20,
+                lineHeight: 90
+            }, cfg, true);
         },
         load: function(data) {
             this.__sourceData__ = data;
@@ -43,18 +93,20 @@
         render: function() {
             var self = this;
 
+            var cfg = self.__config__;
             var srcData = $.extend([], self.__sourceData__, true);
             var svg = self.svg;
             var w = svg.attr('width');
             var h = svg.attr('height');
 
-            var padding = 20;
+            var boxPadding = cfg.boxPadding;
+            var lineHeight = cfg.lineHeight;
             var getX = d3.scale.linear()
                 .domain([0, srcData.length - 1])
-                .range([padding, w - padding]);
+                .range([boxPadding, w - boxPadding]);
 
             var getY = function(p) {
-                return p * 90 + padding;
+                return p * lineHeight + boxPadding;
             };
 
             $.each(srcData, function(idx, v) {
@@ -107,39 +159,12 @@
                     });
             });
 
-            function toRight(data, x, y) {
-                var target = [];
-                var c = data[x][y];
-
-                if (!c.right) return;
-                x += 1;
-                var temIdxs = c.right;
-                var tem;
-                var cur;
-                var rights;
-                do {
-                    tem = [];
-                    rights = [];
-                    $.each(temIdxs, function(k, v) {
-                        cur = data[x][v];
-                        if (cur.right) {
-                            rights = rights.concat(cur.right);
-                        }
-                        tem.push(cur);
-                    });
-                    data[x - 1] = tem;
-                    temIdxs = uniqArray(rights);
-                    x += 1;
-                } while(x >= 0 && x < data.length);
-                data = target;
-            }
-
             svg.selectAll('circle').on('click', function() {
                 var pi = $(this).attr('data-pi');
                 var i = $(this).attr('data-i');
-                var data = $.extend([], self.sourceData, true);
+                var data = $.extend([], self.__sourceData__, true);
                 data[pi] = [data[pi][i]];
-                toRight(data, pi, i);
+                getCurrentData(data, pi * 1);
                 console.log(data);
             });
 
@@ -148,7 +173,9 @@
 
     VDNS.prototype.init.prototype = VDNS.prototype;
 
-})();
+    window.VDNS = VDNS;
+
+})(window);
 
 
 
