@@ -2,7 +2,8 @@
   "name": "vdns",
   "version": "0.0.1",
   "dependencies": {
-    "d3": "~3.4.13"
+    "d3": "~3.4.13",
+    "jquery": "~2.1.1"
   },
   "devDependencies": {}
 }
