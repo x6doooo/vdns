@@ -103,8 +103,8 @@
         config: function(cfg) {
             cfg = cfg || {};
             this.__config__ = $.extend({
-                boxPadding: 20,
-                lineHeight: 90
+                boxPadding: 80,
+                lineHeight: 50
             }, cfg, true);
         },
         load: function(data) {
@@ -173,27 +173,45 @@
                     });
                 });
 
-                var circles = svg.append('g')
-                    .selectAll('circle')
+                var g = svg.append('g');
+                g.selectAll('circle')
                     .data(v)
                     .enter()
-                    .append('circle');
-                circles.attr({
-                    r: 4,
-                    fill: '#fff',
-                    stroke: '#08c',
-                    'stroke-width': 2,
-                    cx: function(d, i) {
-                        return getX(idx);
-                    },
-                    cy: function(d, i) {
-                        $(this).attr({
-                            'data-pi': idx,
-                            'data-i': i
-                        });
-                        return getY(i);
-                    }
-                });
+                    .append('circle')
+                    .attr({
+                        r: 2,
+                        fill: '#fff',
+                        stroke: '#08c',
+                        'stroke-width': 2,
+                        cx: function(d, i) {
+                            return getX(idx);
+                        },
+                        cy: function(d, i) {
+                            $(this).attr({
+                                'data-pi': idx,
+                                'data-i': i
+                            });
+                            return getY(i);
+                        }
+                    });
+                g.selectAll('text')
+                    .data(v)
+                    .enter()
+                    .append('text')
+                    .text(function(d) {
+                        return d.name;
+                    })
+                    .attr({
+                        x: function(d, i) {
+                            return getX(idx);
+                        },
+                        y: function(d, i) {
+                            return getY(i);
+                        },
+                        'text-anchor': 'middle',
+                        'font-size': 12
+                    });
+
 
             });
 
