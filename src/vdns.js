@@ -23,7 +23,6 @@
         var cur;
         var sides;
         var temIdxs = [0];
-        // todo: 每一列的修改纪录都记下来 最后再重置一遍
         while(x >= 0 && x < data.length) {
             changeMap[x] = {};
             tem = [];
@@ -110,6 +109,11 @@
         },
         load: function(data) {
             this.__sourceData__ = data;
+            var max = d3.max(data, function(x) {
+                return x.length;
+            });
+            var cfg = this.__config__;
+            this.svg.attr('height', (max - 1) * cfg.lineHeight + cfg.boxPadding * 2);
             this.render();
         },
         render: function() {
@@ -123,9 +127,16 @@
 
             var boxPadding = cfg.boxPadding;
             var lineHeight = cfg.lineHeight;
-            var getX = d3.scale.linear()
+            var __getX = d3.scale.linear()
                 .domain([0, srcData.length - 1])
                 .range([boxPadding, w - boxPadding]);
+            var getX = function(p) {
+                var q = __getX(p);
+                if (p < 3) {
+                    return q - 20 * p;
+                }
+                return q + 20 * (5 - p);
+            };
 
             var getY = function(p) {
                 return p * lineHeight + boxPadding;
@@ -168,7 +179,7 @@
                     .enter()
                     .append('circle');
                 circles.attr({
-                    r: 5,
+                    r: 4,
                     fill: '#fff',
                     stroke: '#08c',
                     'stroke-width': 2,
