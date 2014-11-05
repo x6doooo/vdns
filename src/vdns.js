@@ -86,9 +86,14 @@
         config: function(cfg) {
             cfg = cfg || {};
             this.__config__ = $.extend({
+                color: '#fff',
                 duration: 500,
                 circleRadiu: 3,
-                circleStroke: 2,
+                rectStrokeWidth: 1,
+                clientStroke: '#08c',
+                resultStroke: '#690',
+                rectWidth: 60,
+                rectHeight: 20,
                 boxPadding: 80,
                 lineHeight: 30
             }, cfg, true);
@@ -137,9 +142,9 @@
                 $.each(v, function(i, d) {
                     if (!d.right) return;
                     $.each(d.right, function(n, rIdx) {
-                        var p0x = getX(idx);
+                        var p0x = getX(idx) + cfg.rectWidth / 2;
                         var p0y = getY(i);
-                        var p4x = getX(idx + 1);
+                        var p4x = getX(idx + 1) - cfg.rectWidth / 2;
                         var p4y = getY(rIdx);
                         var p2x = (p4x - p0x) / 2 + p0x;
                         var p2y = (p4y - p0y) / 2 + p0y;
@@ -170,21 +175,56 @@
                     });
                 });
 
-                var circles;
+                var rects;
                 var texts;
                 var g;
                 if (isReload) {
                     g = svg.select('g:nth-of-type(' + (idx + 1) + ')');
-                    circles = g.selectAll('circle');
+                    rects = g.selectAll('rect');
                     texts = g.selectAll('text');
                 } else {
                     g = svg.append('g');
-                    circles = g.selectAll('circle');
+                    rects = g.selectAll('rect');
                     texts = g.selectAll('text');
                 }
 
-                circles = circles.data(v);
+                rects = rects.data(v);
+                rects.enter()
+                    .append('rect')
+                    .style('cursor', 'pointer')
+                    .attr({
+                        rx: 5,
+                        ry: 5,
+                        fill: function() {
+                            return idx > 2 ? cfg.resultStroke : cfg.clientStroke;
+                        },
+                        stroke: function() {
+                            return idx > 2 ? cfg.resultStroke : cfg.clientStroke;
+                        },
+                        width: cfg.rectWidth,
+                        height: cfg.rectHeight,
+                        'stroke-width': cfg.rectStrokeWidth,
+                        x: function(d, i) {
+                            return getX(idx) - cfg.rectWidth / 2;
+                        },
+                        y: function() {
+                            return getY(0) - cfg.rectHeight / 2;
+                        }
+                    })
+                    .transition()
+                    .duration(cfg.duration)
+                    .attr({
+                        y: function(d, i) {
+                            $(this).attr({
+                                'data-pi': idx,
+                                'data-i': i
+                            });
+                            return getY(i) - cfg.rectHeight / 2;
+                        }
+                    });
 
+
+                /*
                 circles.transition()
                     .duration(cfg.duration)
                     .attr('cy', function(d, i) {
@@ -221,6 +261,7 @@
                             return getY(i);
                         }
                     });
+                    */
 
                     /*
                     .attr({
@@ -236,14 +277,14 @@
                         }
                     });*/
 
+                /*
                 circles.exit()
                     .transition()
                     .duration(cfg.duration)
                     .style('opacity', 0)
                     .remove();
+                */
 
-
-                var anchor = idx < 3 ? 'end' : 'start';
                 texts.data(v)
                     .enter()
                     .append('text')
@@ -253,23 +294,22 @@
                     })
                     .attr({
                         x: function(d, i) {
-                            var tem = getX(idx);
-                            if (idx < 3) {
-                                tem -= cfg.circleRadiu;
-                            } else {
-                                tem += cfg.circleRadiu;
-                            }
-                            return tem;
+                            return getX(idx);
                         },
                         y: function(d, i) {
-                            $(this).attr({
-                                'data-pi': idx,
-                                'data-i': i
-                            });
-                            return getY(i) - cfg.circleRadiu;
+                            return getY(0);
                         },
-                        'text-anchor': anchor,
+                        fill: cfg.color,
+                        'text-anchor': 'middle',
+                        'alignment-baseline': 'middle',
                         'font-size': 12
+                    })
+                    .transition()
+                    .duration(cfg.duration)
+                    .attr({
+                        y: function(d, i) {
+                            return getY(i);
+                        }
                     });
 
 
