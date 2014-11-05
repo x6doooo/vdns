@@ -1,11 +1,11 @@
 
 (function(window, $, _, undefined) {
 
-    function toSideEnd(data, x, whichSide, changeMap, xHandler) {
+    function toSideEnd(data, x, old, whichSide, changeMap, xHandler) {
         var tem;
         var cur;
         var sides;
-        var temIdxs = [0];
+        var temIdxs = [old];
         while(x >= 0 && x < data.length) {
             changeMap[x] = {};
             tem = [];
@@ -16,7 +16,6 @@
                 tem.push(cur);
                 changeMap[x][v] = tem.length - 1;
             });
-            data[x] = tem;
             temIdxs = _.uniq(sides);
             x = xHandler(x);
         }
@@ -24,43 +23,14 @@
 
     function getCurrentData(data, x, old) {
         var changeMap = [];
-        toSideEnd(data, x, 'right', changeMap, function(x) {
+        toSideEnd(data, x, old, 'right', changeMap, function(x) {
             return x + 1;
         });
-        toSideEnd(data, x, 'left', changeMap, function(x) {
+        toSideEnd(data, x, old, 'left', changeMap, function(x) {
             return x - 1;
         });
         changeMap[x][old] = 0;
-        var tem;
-        var cur;
-        $.each(data, function(k, v) {
-            $.each(v, function(i, d) {
-                tem = [];
-                if (d.left) {
-                    $.each(d.left, function(n, lft) {
-                        cur = changeMap[k - 1][lft];
-                        if (typeof cur === 'nubmer') {
-                            tem.push(cur);
-                        }
-                    });
-                    d.left = tem;
-                }
-                tem = [];
-                if (d.right) {
-                    $.each(d.right, function(n, rgt) {
-                        cur = changeMap[k + 1][rgt];
-                        if (k === 0) {
-                            console.log(changeMap[k + 1]);
-                        }
-                        if (typeof cur === 'number') {
-                            tem.push(cur);
-                        }
-                    });
-                    d.right = tem;
-                }
-            });
-        });
-        return data;
+        return changeMap;
     }
 
     function VDNS(selector, width, height) {
@@ -88,14 +58,15 @@
             this.__config__ = $.extend({
                 color: '#fff',
                 duration: 500,
+                ease: 'bounce',
                 circleRadiu: 3,
                 rectStrokeWidth: 1,
                 clientStroke: '#08c',
                 resultStroke: '#690',
                 rectWidth: 60,
-                rectHeight: 20,
-                boxPadding: 80,
-                lineHeight: 30
+                rectHeight: 14,
+                boxPadding: 40,
+                lineHeight: 20
             }, cfg, true);
         },
         load: function(data) {
@@ -105,6 +76,22 @@
             });
             var cfg = this.__config__;
             this.svg.attr('height', (max - 1) * cfg.lineHeight + cfg.boxPadding * 2);
+
+            var __getX = d3.scale.linear()
+                .domain([0, data.length - 1])
+                .range([cfg.boxPadding, this.svg.attr('width') - cfg.boxPadding]);
+
+            this.getX = function(p) {
+                var q = __getX(p);
+                if (p < 3) {
+                    return q - 20 * p;
+                }
+                return q + 20 * (5 - p);
+            };
+
+            this.getY = function(p) {
+                return p * cfg.lineHeight + cfg.boxPadding;
+            };
             this.render();
         },
         render: function() {
@@ -113,32 +100,11 @@
             var cfg = self.__config__;
             var srcData = $.extend([], self.__sourceData__, true);
             var svg = self.svg;
-            var w = svg.attr('width');
-            var h = svg.attr('height');
-
-            var boxPadding = cfg.boxPadding;
-            var lineHeight = cfg.lineHeight;
-            var __getX = d3.scale.linear()
-                .domain([0, srcData.length - 1])
-                .range([boxPadding, w - boxPadding]);
-
-            var getX = function(p) {
-                var q = __getX(p);
-                if (p < 3) {
-                    return q - 20 * p;
-                }
-                return q + 20 * (5 - p);
-            };
-
-            var getY = function(p) {
-                return p * lineHeight + boxPadding;
-            };
-
-            svg.selectAll('path').remove();
-            //svg.selectAll('g').remove();
-            var isReload = svg.selectAll('g')[0].length;
+            var getX = self.getX;
+            var getY = self.getY;
 
             $.each(srcData, function(idx, v) {
+                var g = svg.append('g');
                 $.each(v, function(i, d) {
                     if (!d.right) return;
                     $.each(d.right, function(n, rIdx) {
@@ -162,8 +128,11 @@
                             'Q' + p1x + ',' + inY + ' ' + p2x + ',' + inY + ' ' +
                             'T' + p4x + ',' + inY;
 
-                        svg.append('path')
+                        g.append('path')
                             .attr({
+                                'data-from-idx': idx,
+                                'data-from-i': i,
+                                'data-to-i': rIdx,
                                 d: initDesc,
                                 fill: 'none',
                                 stroke: '#333',
@@ -171,28 +140,22 @@
                             })
                             .transition()
                             .duration(cfg.duration)
+                            .ease(cfg.ease)
                             .attr('d', desc);
                     });
                 });
 
-                var rects;
-                var texts;
-                var g;
-                if (isReload) {
-                    g = svg.select('g:nth-of-type(' + (idx + 1) + ')');
-                    rects = g.selectAll('rect');
-                    texts = g.selectAll('text');
-                } else {
-                    g = svg.append('g');
-                    rects = g.selectAll('rect');
-                    texts = g.selectAll('text');
-                }
+                var rects = g.selectAll('rect');
+                var texts = g.selectAll('text');
 
                 rects = rects.data(v);
                 rects.enter()
                     .append('rect')
                     .style('cursor', 'pointer')
                     .attr({
+                        class: function(d, i) {
+                            return 'rect-' + idx + '-' + i;
+                        },
                         rx: 5,
                         ry: 5,
                         fill: function() {
@@ -207,83 +170,22 @@
                         x: function(d, i) {
                             return getX(idx) - cfg.rectWidth / 2;
                         },
-                        y: function() {
-                            return getY(0) - cfg.rectHeight / 2;
-                        }
-                    })
-                    .transition()
-                    .duration(cfg.duration)
-                    .attr({
                         y: function(d, i) {
                             $(this).attr({
                                 'data-pi': idx,
                                 'data-i': i
                             });
-                            return getY(i) - cfg.rectHeight / 2;
-                        }
-                    });
-
-
-                /*
-                circles.transition()
-                    .duration(cfg.duration)
-                    .attr('cy', function(d, i) {
-                        $(this).attr({
-                            'data-pi': idx,
-                            'data-i': i
-                        });
-                        return getY(i);
-                    });
-
-                circles.enter()
-                    .append('circle')
-                    .style('cursor', 'pointer')
-                    .attr({
-                        r: cfg.circleRadiu,
-                        fill: '#fff',
-                        stroke: '#08c',
-                        'stroke-width': cfg.circleStroke,
-                        cx: function(d, i) {
-                            return getX(idx)
-                        },
-                        cy: function(d, i) {
-                            return getY(0);
+                            return getY(0) - cfg.rectHeight / 2;
                         }
                     })
                     .transition()
                     .duration(cfg.duration)
+                    .ease(cfg.ease)
                     .attr({
-                        cy: function(d, i) {
-                            $(this).attr({
-                                'data-pi': idx,
-                                'data-i': i
-                            });
-                            return getY(i);
+                        y: function(d, i) {
+                            return getY(i) - cfg.rectHeight / 2;
                         }
                     });
-                    */
-
-                    /*
-                    .attr({
-                        cx: function(d, i) {
-                            return getX(idx);
-                        },
-                        cy: function(d, i) {
-                            $(this).attr({
-                                'data-pi': idx,
-                                'data-i': i
-                            });
-                            return getY(i);
-                        }
-                    });*/
-
-                /*
-                circles.exit()
-                    .transition()
-                    .duration(cfg.duration)
-                    .style('opacity', 0)
-                    .remove();
-                */
 
                 texts.data(v)
                     .enter()
@@ -293,10 +195,17 @@
                         return d.name;
                     })
                     .attr({
+                        class: function(d, i) {
+                            return 'text-' + idx + '-' + i;
+                        },
                         x: function(d, i) {
                             return getX(idx);
                         },
                         y: function(d, i) {
+                            $(this).attr({
+                                'data-pi': idx,
+                                'data-i': i
+                            });
                             return getY(0);
                         },
                         fill: cfg.color,
@@ -306,6 +215,7 @@
                     })
                     .transition()
                     .duration(cfg.duration)
+                    .ease(cfg.ease)
                     .attr({
                         y: function(d, i) {
                             return getY(i);
@@ -315,19 +225,121 @@
 
             });
 
-
             function eventHandler() {
                 var pi = $(this).attr('data-pi');
                 var i = $(this).attr('data-i');
                 var data = $.extend([], self.__sourceData__, true);
-                data[pi] = [data[pi][i]];
-                data = getCurrentData(data, pi * 1, i);
-                self.load(data);
+                //data[pi] = [data[pi][i]];
+                var changeMap = getCurrentData(data, pi * 1, i);
+                self.refresh(changeMap);
             }
 
             svg.selectAll('circle').on('click', eventHandler);
             svg.selectAll('text').on('click', eventHandler);
+            $(svg[0][0]).on('click', function(e) {
+                if (e.target.tagName !== 'svg') {
+                    return;
+                }
+                var changeMap = [];
+                $.each(srcData, function(k, v) {
+                    changeMap[k] = [];
+                    $.each(v, function(i, x) {
+                        changeMap[k][i] = i;
+                    });
+                });
+                self.refresh(changeMap);
+                return false;
+            });
 
+        },
+        refresh: function(changeMap) {
+            var self = this;
+            var cfg = self.__config__;
+            var svg = self.svg;
+
+            var getX = self.getX;
+            var getY = self.getY;
+
+            svg.selectAll('g').selectAll('rect')
+                .transition()
+                .duration(cfg.duration)
+                .ease(cfg.ease)
+                .attr({
+                    opacity: function(d, i, idx) {
+                        if (changeMap[idx][i] === undefined) {
+                            return 0;
+                        }
+                        return 1;
+                    },
+                    y: function(d, i, idx) {
+                        var tem = changeMap[idx][i];
+                        if (tem === undefined) {
+                            tem = i;
+                        }
+                        return getY(tem) - cfg.rectHeight / 2;
+                    }
+                });
+            svg.selectAll('g').selectAll('text')
+                .transition()
+                .duration(cfg.duration)
+                .ease(cfg.ease)
+                .attr({
+                    opacity: function(d, i, idx) {
+                        if (changeMap[idx][i] === undefined) {
+                            return 0;
+                        }
+                        return 1;
+                    },
+                    y: function(d, i, idx) {
+                        var tem = changeMap[idx][i];
+                        if (tem === undefined) {
+                            tem = i;
+                        }
+                        return getY(tem);
+                    }
+                });
+            svg.selectAll('g').selectAll('path')
+                .transition()
+                .duration(cfg.duration)
+                .ease(cfg.ease)
+                .attr({
+                    opacity: function(d, i, idx) {
+                        var from = $(this).attr('data-from-i');
+                        var to = $(this).attr('data-to-i');
+                        if (changeMap[idx][from] === undefined || changeMap[idx + 1][to] === undefined) {
+                            return 0;
+                        }
+                        return 1;
+                    },
+                    d: function(d, i, idx) {
+                        var from = $(this).attr('data-from-i');
+
+                        var rIdx = $(this).attr('data-to-i');
+
+                        if (rIdx === undefined) return;
+                        var tem = changeMap[idx][from];
+                        if (tem === undefined) {
+                            tem = 1;
+                        }
+                        var temR = changeMap[idx + 1][rIdx];
+                        if (temR === undefined) {
+                            temR = rIdx;
+                        }
+                        var p0x = getX(idx) + cfg.rectWidth / 2;
+                        var p0y = getY(tem);
+                        var p4x = getX(idx + 1) - cfg.rectWidth / 2;
+                        var p4y = getY(temR);
+                        var p2x = (p4x - p0x) / 2 + p0x;
+                        var p2y = (p4y - p0y) / 2 + p0y;
+                        var p1x = (p4x - p0x) / 4 + p0x;
+
+                        var desc =
+                            'M' + p0x + ',' + p0y + ' ' +
+                            'Q' + p1x + ',' + p0y + ' ' + p2x + ',' + p2y + ' ' +
+                            'T' + p4x + ',' + p4y;
+                        return desc;
+                    }
+                });
         }
     };
 
