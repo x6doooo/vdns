@@ -2,21 +2,7 @@
  *  VDNS
  */
 
-(function(window, undefined) {
-
-    // util
-    function uniqArray(arr) {
-        var tem = {};
-        var len = arr.length;
-        while(len--) {
-            tem[arr[len]] = true;
-        }
-        var a = [];
-        for(len in tem) {
-            a.push(len);
-        }
-        return a;
-    }
+(function(window, $, _, undefined) {
 
     function toSideEnd(data, x, whichSide, changeMap, xHandler) {
         var tem;
@@ -34,7 +20,7 @@
                 changeMap[x][v] = tem.length - 1;
             });
             data[x] = tem;
-            temIdxs = uniqArray(sides);
+            temIdxs = _.uniq(sides);
             x = xHandler(x);
         }
     }
@@ -232,7 +218,7 @@
 
     window.VDNS = VDNS;
 
-})(window);
+})(window, jQuery, _);
 
 
 
