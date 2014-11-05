@@ -86,10 +86,11 @@
         config: function(cfg) {
             cfg = cfg || {};
             this.__config__ = $.extend({
+                duration: 500,
                 circleRadiu: 3,
                 circleStroke: 2,
                 boxPadding: 80,
-                lineHeight: 50
+                lineHeight: 30
             }, cfg, true);
         },
         load: function(data) {
@@ -144,18 +145,27 @@
                         var p2y = (p4y - p0y) / 2 + p0y;
                         var p1x = (p4x - p0x) / 4 + p0x;
                         // var p1y = p0y;
+
+                        var inY = getY(0);
                         var desc =
                             'M' + p0x + ',' + p0y + ' ' +
                             'Q' + p1x + ',' + p0y + ' ' + p2x + ',' + p2y + ' ' +
                             'T' + p4x + ',' + p4y;
 
+                        var initDesc =
+                            'M' + p0x + ',' + inY + ' ' +
+                            'Q' + p1x + ',' + inY + ' ' + p2x + ',' + inY + ' ' +
+                            'T' + p4x + ',' + inY;
+
                         svg.append('path')
                             .attr({
-                                d: 'M' + p0x + ',' + p0y + ' L' + p0x + ',' + p0y,
+                                d: initDesc,
                                 fill: 'none',
                                 stroke: '#333',
                                 'stroke-width': 0.5
                             })
+                            .transition()
+                            .duration(cfg.duration)
                             .attr('d', desc);
                     });
                 });
@@ -176,7 +186,7 @@
                 circles = circles.data(v);
 
                 circles.transition()
-                    .delay(500)
+                    .duration(cfg.duration)
                     .attr('cy', function(d, i) {
                         $(this).attr({
                             'data-pi': idx,
@@ -184,6 +194,7 @@
                         });
                         return getY(i);
                     });
+
                 circles.enter()
                     .append('circle')
                     .style('cursor', 'pointer')
@@ -193,8 +204,15 @@
                         stroke: '#08c',
                         'stroke-width': cfg.circleStroke,
                         cx: function(d, i) {
-                            return getX(idx);
+                            return getX(idx)
                         },
+                        cy: function(d, i) {
+                            return getY(0);
+                        }
+                    })
+                    .transition()
+                    .duration(cfg.duration)
+                    .attr({
                         cy: function(d, i) {
                             $(this).attr({
                                 'data-pi': idx,
@@ -220,7 +238,7 @@
 
                 circles.exit()
                     .transition()
-                    .duration(500)
+                    .duration(cfg.duration)
                     .style('opacity', 0)
                     .remove();
 
