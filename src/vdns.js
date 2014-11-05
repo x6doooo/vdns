@@ -1,6 +1,3 @@
-/**
- *  VDNS
- */
 
 (function(window, $, _, undefined) {
 
@@ -89,6 +86,8 @@
         config: function(cfg) {
             cfg = cfg || {};
             this.__config__ = $.extend({
+                circleRadiu: 3,
+                circleStroke: 2,
                 boxPadding: 80,
                 lineHeight: 50
             }, cfg, true);
@@ -164,11 +163,12 @@
                     .data(v)
                     .enter()
                     .append('circle')
+                    .style('cursor', 'pointer')
                     .attr({
-                        r: 2,
+                        r: cfg.circleRadiu,
                         fill: '#fff',
                         stroke: '#08c',
-                        'stroke-width': 2,
+                        'stroke-width': cfg.circleStroke,
                         cx: function(d, i) {
                             return getX(idx);
                         },
@@ -185,15 +185,26 @@
                     .data(v)
                     .enter()
                     .append('text')
+                    .style('cursor', 'pointer')
                     .text(function(d) {
                         return d.name;
                     })
                     .attr({
                         x: function(d, i) {
-                            return getX(idx);
+                            var tem = getX(idx);
+                            if (idx < 3) {
+                                tem -= cfg.circleRadiu;
+                            } else {
+                                tem += cfg.circleRadiu;
+                            }
+                            return tem;
                         },
                         y: function(d, i) {
-                            return getY(i);
+                            $(this).attr({
+                                'data-pi': idx,
+                                'data-i': i
+                            });
+                            return getY(i) - cfg.circleRadiu;
                         },
                         'text-anchor': anchor,
                         'font-size': 12
@@ -202,14 +213,18 @@
 
             });
 
-            svg.selectAll('circle').on('click', function() {
+
+            function eventHandler() {
                 var pi = $(this).attr('data-pi');
                 var i = $(this).attr('data-i');
                 var data = $.extend([], self.__sourceData__, true);
                 data[pi] = [data[pi][i]];
                 data = getCurrentData(data, pi * 1, i);
                 self.load(data);
-            });
+            }
+
+            svg.selectAll('circle').on('click', eventHandler);
+            svg.selectAll('text').on('click', eventHandler);
 
         }
     };
