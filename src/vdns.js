@@ -115,6 +115,7 @@
             var __getX = d3.scale.linear()
                 .domain([0, srcData.length - 1])
                 .range([boxPadding, w - boxPadding]);
+
             var getX = function(p) {
                 var q = __getX(p);
                 if (p < 3) {
@@ -128,7 +129,8 @@
             };
 
             svg.selectAll('path').remove();
-            svg.selectAll('g').remove();
+            //svg.selectAll('g').remove();
+            var isReload = svg.selectAll('g')[0].length;
 
             $.each(srcData, function(idx, v) {
                 $.each(v, function(i, d) {
@@ -158,10 +160,31 @@
                     });
                 });
 
-                var g = svg.append('g');
-                g.selectAll('circle')
-                    .data(v)
-                    .enter()
+                var circles;
+                var texts;
+                var g;
+                if (isReload) {
+                    g = svg.select('g:nth-of-type(' + (idx + 1) + ')');
+                    circles = g.selectAll('circle');
+                    texts = g.selectAll('text');
+                } else {
+                    g = svg.append('g');
+                    circles = g.selectAll('circle');
+                    texts = g.selectAll('text');
+                }
+
+                circles = circles.data(v);
+
+                circles.transition()
+                    .delay(500)
+                    .attr('cy', function(d, i) {
+                        $(this).attr({
+                            'data-pi': idx,
+                            'data-i': i
+                        });
+                        return getY(i);
+                    });
+                circles.enter()
                     .append('circle')
                     .style('cursor', 'pointer')
                     .attr({
@@ -180,9 +203,30 @@
                             return getY(i);
                         }
                     });
+
+                    /*
+                    .attr({
+                        cx: function(d, i) {
+                            return getX(idx);
+                        },
+                        cy: function(d, i) {
+                            $(this).attr({
+                                'data-pi': idx,
+                                'data-i': i
+                            });
+                            return getY(i);
+                        }
+                    });*/
+
+                circles.exit()
+                    .transition()
+                    .duration(500)
+                    .style('opacity', 0)
+                    .remove();
+
+
                 var anchor = idx < 3 ? 'end' : 'start';
-                g.selectAll('text')
-                    .data(v)
+                texts.data(v)
                     .enter()
                     .append('text')
                     .style('cursor', 'pointer')
