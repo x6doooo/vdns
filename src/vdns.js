@@ -51,7 +51,7 @@
             self.__container__ = d3.select(selector);
             self.svg = self.__container__.append('svg');
             self.svg.attr({
-                width: width || 800,
+                width: width || 1000,
                 height: height || 600
             });
             self.config();
@@ -297,7 +297,7 @@
                 self.refresh(changeMap);
             }
 
-            svg.selectAll('circle').on('click', eventHandler);
+            svg.selectAll('rect').on('click', eventHandler);
             svg.selectAll('text').on('click', eventHandler);
             $(svg[0][0]).on('click', function(e) {
                 if (e.target.tagName !== 'svg') {
@@ -320,7 +320,6 @@
             var cfg = self.__config__;
             var svg = self.svg;
 
-            console.log(changeMap);
             var max = d3.max(changeMap, function(x) {
                 return _.size(x);
             });
