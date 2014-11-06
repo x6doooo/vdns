@@ -17,6 +17,9 @@
                 changeMap[x][v] = tem.length - 1;
             });
             temIdxs = _.uniq(sides);
+            temIdxs.sort(function(a, b) {
+                return a - b;
+            });
             x = xHandler(x);
         }
     }
@@ -69,17 +72,79 @@
                 lineHeight: 20
             }, cfg, true);
         },
+        _formatIndex: function(changeMap) {
+            var self = this;
+            var srcData = self.__sourceData__;
+
+            var formated = [
+                [], [], [],
+                [], [], []
+            ];
+            var map = {
+                2: {
+                    next: 1,
+                    final: 0,
+                    side: 'left'
+                },
+                3: {
+                    next: 4,
+                    final: 5,
+                    side: 'right'
+                }
+            };
+            var next;
+            var final;
+            var side;
+            var cur;
+            var mapCur;
+            var count;
+            function formatFunc(num, k, isp) {
+                isp.__idx__ = k;
+                mapCur = map[num];
+                next = mapCur.next;
+                final = mapCur.final;
+                side = mapCur.side;
+                if (!formated[next][isp[side][0]]) {
+                    formated[next][isp[side][0]] = true;
+                    cur = srcData[next][isp[side][0]];
+                    cur.__idx__ = k;
+                    if (!formated[final][cur[side][0]]) {
+                        formated[final][cur[side][0]] = true;
+                        srcData[final][cur[side][0]].__idx__ = k;
+                    }
+                }
+            }
+            $.each([2, 3], function(i, num) {
+                if (changeMap) {
+                    count = 0;
+                    $.each(changeMap[num], function(ispIdx, k) {
+                        formatFunc(num, count++, srcData[num][ispIdx]);
+                    });
+                } else {
+                    $.each(srcData[num], function(k, isp) {
+                        formatFunc(num, k, isp);
+                    });
+                }
+            });
+        },
+        resizeSvg: function(max) {
+            this.svg.transition()
+                .duration(this.__config__.duration)
+                .attr('height', (max - 1) * this.__config__.lineHeight + this.__config__.boxPadding * 2);
+        },
         load: function(data) {
             this.__sourceData__ = data;
             var max = d3.max(data, function(x) {
                 return x.length;
             });
             var cfg = this.__config__;
-            this.svg.attr('height', (max - 1) * cfg.lineHeight + cfg.boxPadding * 2);
+            this.resizeSvg(max);
 
             var __getX = d3.scale.linear()
                 .domain([0, data.length - 1])
                 .range([cfg.boxPadding, this.svg.attr('width') - cfg.boxPadding]);
+
+            this._formatIndex();
 
             this.getX = function(p) {
                 var q = __getX(p);
@@ -89,8 +154,8 @@
                 return q + 20 * (5 - p);
             };
 
-            this.getY = function(p) {
-                return p * cfg.lineHeight + cfg.boxPadding;
+            this.getY = function(p, idx) {
+                return data[idx][p].__idx__ * cfg.lineHeight + cfg.boxPadding;
             };
             this.render();
         },
@@ -108,16 +173,17 @@
                 $.each(v, function(i, d) {
                     if (!d.right) return;
                     $.each(d.right, function(n, rIdx) {
+
                         var p0x = getX(idx) + cfg.rectWidth / 2;
-                        var p0y = getY(i);
+                        var p0y = getY(i, idx);
                         var p4x = getX(idx + 1) - cfg.rectWidth / 2;
-                        var p4y = getY(rIdx);
+                        var p4y = getY(rIdx, idx + 1);
                         var p2x = (p4x - p0x) / 2 + p0x;
                         var p2y = (p4y - p0y) / 2 + p0y;
                         var p1x = (p4x - p0x) / 4 + p0x;
                         // var p1y = p0y;
 
-                        var inY = getY(0);
+                        var inY = getY(0, idx);
                         var desc =
                             'M' + p0x + ',' + p0y + ' ' +
                             'Q' + p1x + ',' + p0y + ' ' + p2x + ',' + p2y + ' ' +
@@ -153,9 +219,6 @@
                     .append('rect')
                     .style('cursor', 'pointer')
                     .attr({
-                        class: function(d, i) {
-                            return 'rect-' + idx + '-' + i;
-                        },
                         rx: 5,
                         ry: 5,
                         fill: function() {
@@ -175,7 +238,7 @@
                                 'data-pi': idx,
                                 'data-i': i
                             });
-                            return getY(0) - cfg.rectHeight / 2;
+                            return getY(0, idx) - cfg.rectHeight / 2;
                         }
                     })
                     .transition()
@@ -183,7 +246,7 @@
                     .ease(cfg.ease)
                     .attr({
                         y: function(d, i) {
-                            return getY(i) - cfg.rectHeight / 2;
+                            return getY(i, idx) - cfg.rectHeight / 2;
                         }
                     });
 
@@ -206,7 +269,7 @@
                                 'data-pi': idx,
                                 'data-i': i
                             });
-                            return getY(0);
+                            return getY(0, idx);
                         },
                         fill: cfg.color,
                         'text-anchor': 'middle',
@@ -218,7 +281,7 @@
                     .ease(cfg.ease)
                     .attr({
                         y: function(d, i) {
-                            return getY(i);
+                            return getY(i, idx);
                         }
                     });
 
@@ -257,6 +320,14 @@
             var cfg = self.__config__;
             var svg = self.svg;
 
+            console.log(changeMap);
+            var max = d3.max(changeMap, function(x) {
+                return _.size(x);
+            });
+            this.resizeSvg(max);
+
+            this._formatIndex(changeMap);
+
             var getX = self.getX;
             var getY = self.getY;
 
@@ -272,11 +343,7 @@
                         return 1;
                     },
                     y: function(d, i, idx) {
-                        var tem = changeMap[idx][i];
-                        if (tem === undefined) {
-                            tem = i;
-                        }
-                        return getY(tem) - cfg.rectHeight / 2;
+                        return getY(i, idx) - cfg.rectHeight / 2;
                     }
                 });
             svg.selectAll('g').selectAll('text')
@@ -291,11 +358,7 @@
                         return 1;
                     },
                     y: function(d, i, idx) {
-                        var tem = changeMap[idx][i];
-                        if (tem === undefined) {
-                            tem = i;
-                        }
-                        return getY(tem);
+                        return getY(i, idx);
                     }
                 });
             svg.selectAll('g').selectAll('path')
@@ -316,19 +379,10 @@
 
                         var rIdx = $(this).attr('data-to-i');
 
-                        if (rIdx === undefined) return;
-                        var tem = changeMap[idx][from];
-                        if (tem === undefined) {
-                            tem = 1;
-                        }
-                        var temR = changeMap[idx + 1][rIdx];
-                        if (temR === undefined) {
-                            temR = rIdx;
-                        }
                         var p0x = getX(idx) + cfg.rectWidth / 2;
-                        var p0y = getY(tem);
+                        var p0y = getY(from, idx);
                         var p4x = getX(idx + 1) - cfg.rectWidth / 2;
-                        var p4y = getY(temR);
+                        var p4y = getY(rIdx, idx + 1);
                         var p2x = (p4x - p0x) / 2 + p0x;
                         var p2y = (p4y - p0y) / 2 + p0y;
                         var p1x = (p4x - p0x) / 4 + p0x;
