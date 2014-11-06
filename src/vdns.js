@@ -40,6 +40,8 @@
         return new VDNS.prototype.init(selector, width, height);
     }
 
+    var tooltip = $('<div class="vdns-tooltip"></div>');
+
     VDNS.prototype = {
         constructor: VDNS,
         init: function(selector, width, height) {
@@ -288,20 +290,30 @@
 
             });
 
-            function eventHandler() {
-                var pi = $(this).attr('data-pi');
-                var i = $(this).attr('data-i');
+            returnAllData();
+
+            function eventHandler($el, isHover) {
+                if ($el.attr('opacity') != 1) return;
+                var pi = $el.attr('data-pi') * 1;
+                var i = $el.attr('data-i');
                 var data = $.extend([], self.__sourceData__, true);
-                //data[pi] = [data[pi][i]];
-                var changeMap = getCurrentData(data, pi * 1, i);
-                self.refresh(changeMap);
+                if (isHover && !self.lastChangeMap) {
+                    self.lastChangeMap = self.changeMap;
+                }
+                self.changeMap = getCurrentData(data, pi, i);
+                if (!isHover) {
+                    self.lastChangeMap = self.changeMap;
+                }
+                self.refresh(self.changeMap, isHover);
             }
 
-            svg.selectAll('rect').on('click', eventHandler);
-            svg.selectAll('text').on('click', eventHandler);
-            $(svg[0][0]).on('click', function(e) {
-                if (e.target.tagName !== 'svg') {
+            function returnAllData(isHover) {
+                if (isHover && self.lastChangeMap) {
+                    self.refresh(self.lastChangeMap);
                     return;
+                }
+                if (!isHover) {
+                    self.lastChangeMap = null;
                 }
                 var changeMap = [];
                 $.each(srcData, function(k, v) {
@@ -310,69 +322,132 @@
                         changeMap[k][i] = i;
                     });
                 });
+                self.changeMap = changeMap;
                 self.refresh(changeMap);
+            }
+
+            svg.selectAll('rect').on('click', function() {
+                eventHandler($(this));
+            }).on('mouseover', function() {
+                eventHandler($(this), true);
+            }).on('mouseout', function() {
+                returnAllData(true);
+            });
+            svg.selectAll('text').on('click', function() {
+                eventHandler($(this));
+            }).on('mouseover', function() {
+                eventHandler($(this), true);
+            }).on('mouseout', function() {
+                returnAllData(true);
+            });
+
+            $(svg[0][0]).on('click', function(e) {
+                if (e.target.tagName !== 'svg') {
+                    return;
+                }
+                returnAllData();
                 return false;
             });
 
         },
-        refresh: function(changeMap) {
+        refresh: function(changeMap, isHover) {
             var self = this;
             var cfg = self.__config__;
             var svg = self.svg;
 
-            var max = d3.max(changeMap, function(x) {
-                return _.size(x);
-            });
-            this.resizeSvg(max);
 
             this._formatIndex(changeMap);
 
             var getX = self.getX;
             var getY = self.getY;
 
-            svg.selectAll('g').selectAll('rect')
-                .transition()
-                .duration(cfg.duration)
-                .ease(cfg.ease)
-                .attr({
-                    opacity: function(d, i, idx) {
+            var g = svg.selectAll('g');
+            var rects = g.selectAll('rect');
+            var texts = g.selectAll('text');
+            var paths = g.selectAll('path');
+
+            var opacity = 0;
+            if (isHover) {
+                opacity = 0.2;
+            }
+
+            rects.attr({
+                opacity: function(d, i, idx) {
+                    if (isHover && $(this).attr('opacity') == 0) {
                         if (changeMap[idx][i] === undefined) {
                             return 0;
                         }
-                        return 1;
-                    },
+                        return opacity;
+                    }
+                    if (changeMap[idx][i] === undefined) {
+                        return opacity;
+                    }
+                    return 1;
+                }
+            })
+
+            texts.attr({
+                opacity: function(d, i, idx) {
+                    if (isHover && $(this).attr('opacity') == 0) {
+                        if (changeMap[idx][i] === undefined) {
+                            return 0;
+                        }
+                        return opacity;
+                    }
+                    if (changeMap[idx][i] === undefined) {
+                        return opacity;
+                    }
+                    return 1;
+                }
+            });
+
+            paths.attr({
+                opacity: function(d, i, idx) {
+                    var from = $(this).attr('data-from-i');
+                    var to = $(this).attr('data-to-i');
+                    if (isHover && $(this).attr('opacity') == 0) {
+                        if (changeMap[idx][from] === undefined || changeMap[idx + 1][to] === undefined) {
+                            return 0;
+                        }
+                        return opacity;
+                    }
+                    if (changeMap[idx][from] === undefined || changeMap[idx + 1][to] === undefined) {
+                        return 0;
+                    }
+                    return 1;
+                }
+            });
+
+            if (isHover) {
+                return;
+            }
+            var max = d3.max(changeMap, function(x) {
+                return _.size(x);
+            });
+            this.resizeSvg(max);
+
+            rects.transition()
+                .duration(cfg.duration)
+                .ease(cfg.ease)
+                .attr({
                     y: function(d, i, idx) {
                         return getY(i, idx) - cfg.rectHeight / 2;
                     }
                 });
-            svg.selectAll('g').selectAll('text')
-                .transition()
+
+            texts.transition()
                 .duration(cfg.duration)
                 .ease(cfg.ease)
                 .attr({
-                    opacity: function(d, i, idx) {
-                        if (changeMap[idx][i] === undefined) {
-                            return 0;
-                        }
-                        return 1;
-                    },
                     y: function(d, i, idx) {
                         return getY(i, idx);
                     }
                 });
-            svg.selectAll('g').selectAll('path')
-                .transition()
+
+            paths.transition()
                 .duration(cfg.duration)
                 .ease(cfg.ease)
                 .attr({
-                    opacity: function(d, i, idx) {
-                        var from = $(this).attr('data-from-i');
-                        var to = $(this).attr('data-to-i');
-                        if (changeMap[idx][from] === undefined || changeMap[idx + 1][to] === undefined) {
-                            return 0;
-                        }
-                        return 1;
-                    },
                     d: function(d, i, idx) {
                         var from = $(this).attr('data-from-i');
 
