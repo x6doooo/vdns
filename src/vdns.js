@@ -7,6 +7,7 @@
 * */
 (function(window, $, _, undefined) {
 
+    // 向指定方向查找关联点
     function toSideEnd(data, x, old, whichSide, changeMap, xHandler) {
         var tem;
         var cur;
@@ -30,6 +31,7 @@
         }
     }
 
+    // 以一个点，获取与该点相关联的所有点
     function getCurrentData(data, x, old) {
         var changeMap = [];
         toSideEnd(data, x, old, 'right', changeMap, function(x) {
@@ -42,11 +44,14 @@
         return changeMap;
     }
 
+    // tooltip
     var tooltip = $('<div class="vdns-tooltip"></div>');
 
+    // class
     function VDNS(selector, width, height) {
         return new VDNS.prototype.init(selector, width, height);
     }
+
 
     VDNS.prototype = {
         constructor: VDNS,
@@ -55,6 +60,7 @@
             if (!selector) {
                 return self;
             }
+            // 选择器
             self.__containerSelector__ = selector;
             self.__container__ = d3.select(selector);
             self.svg = self.__container__.append('svg');
@@ -62,11 +68,12 @@
                 width: width || 1000,
                 height: height || 600
             });
+            // 生成默认配置
             self.config();
         },
         config: function(cfg) {
             cfg = cfg || {};
-            this.__config__ = $.extend({
+            var lastCfg = this.__config__ || {
                 color: '#fff',
                 duration: 500,
                 ease: 'bounce',
@@ -78,7 +85,8 @@
                 rectHeight: 14,
                 boxPadding: 40,
                 lineHeight: 20
-            }, cfg, true);
+            };
+            this.__config__ = $.extend(lastCfg, cfg, true);
         },
         _formatIndex: function(changeMap) {
             var self = this;
@@ -334,6 +342,7 @@
             }
 
             function returnAllData(isHover) {
+                tooltip.remove();
                 if (isHover && self.lastChangeMap) {
                     self.refresh(self.lastChangeMap);
                     return;
@@ -476,9 +485,7 @@
                 .attr({
                     d: function(d, i, idx) {
                         var from = $(this).attr('data-from-i');
-
                         var rIdx = $(this).attr('data-to-i');
-
                         var p0x = getX(idx) + cfg.rectWidth / 2;
                         var p0y = getY(from, idx);
                         var p4x = getX(idx + 1) - cfg.rectWidth / 2;
