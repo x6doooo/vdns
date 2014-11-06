@@ -1,10 +1,8 @@
-/*
-*   Todo:
-*   - tooltip 名字和ip
-*   - mouseout加timeout，用mouseover取消，避免连续切换的闪烁
-*   - 创建贝塞尔曲线描述的函数
-*   - 整体统计
-* */
+/**
+ *   todo: mouseout加timeout，用mouseover取消，避免连续切换的闪烁
+ *   todo: 创建贝塞尔曲线描述的函数
+ *   todo: 整体统计
+ */
 (function(window, $, _, undefined) {
 
     // 向指定方向查找关联点
@@ -23,6 +21,10 @@
                 tem.push(cur);
                 changeMap[x][v] = tem.length - 1;
             });
+            /**
+             *  去重 and 排序
+             *  todo: _.uniq(arr, true) 这个写法有问题
+             */
             temIdxs = _.uniq(sides);
             temIdxs.sort(function(a, b) {
                 return a - b;
@@ -52,7 +54,6 @@
         return new VDNS.prototype.init(selector, width, height);
     }
 
-
     VDNS.prototype = {
         constructor: VDNS,
         init: function(selector, width, height) {
@@ -71,6 +72,7 @@
             // 生成默认配置
             self.config();
         },
+        // 生成配置
         config: function(cfg) {
             cfg = cfg || {};
             var lastCfg = this.__config__ || {
@@ -88,6 +90,10 @@
             };
             this.__config__ = $.extend(lastCfg, cfg, true);
         },
+        /**
+         * 计算每个元素的y轴序数 __idx__
+         * __idx__用于计算元素的位置
+         */
         _formatIndex: function(changeMap) {
             var self = this;
             var srcData = self.__sourceData__;
@@ -143,11 +149,13 @@
                 }
             });
         },
+        // 重新计算svg的高度
         resizeSvg: function(max) {
             this.svg.transition()
                 .duration(this.__config__.duration)
                 .attr('height', (max - 1) * this.__config__.lineHeight + this.__config__.boxPadding * 2);
         },
+        // 加载数据
         load: function(data) {
             this.__sourceData__ = data;
             var max = d3.max(data, function(x) {
@@ -162,6 +170,7 @@
 
             this._formatIndex();
 
+            // 获取x轴坐标的方法
             this.getX = function(p) {
                 var q = __getX(p);
                 if (p < 3) {
@@ -170,11 +179,14 @@
                 return q + 20 * (5 - p);
             };
 
+            // 获取y轴坐标的方法
             this.getY = function(p, idx) {
                 return data[idx][p].__idx__ * cfg.lineHeight + cfg.boxPadding;
             };
             this.render();
         },
+
+        // 第一次渲染
         render: function() {
             var self = this;
 
@@ -236,6 +248,20 @@
                     .style('cursor', 'pointer')
                     .attr({
                         'data-msg': function(d) {
+                            if (d.clientIPs) {
+                                var tem = [d.fullname];
+                                $.each(d.clientIPs, function(ip, bool) {
+                                    tem.push(ip);
+                                });
+                                return tem.join('<br>')
+                            }
+                            if (d.ips) {
+                                var tem = [d.fullname];
+                                $.each(d.ips, function(ip, bool) {
+                                    tem.push(ip);
+                                });
+                                return tem.join('<br>')
+                            }
                             return d.fullname;
                         },
                         rx: 5,
@@ -278,6 +304,20 @@
                     })
                     .attr({
                         'data-msg': function(d) {
+                            if (d.clientIPs) {
+                                var tem = [d.fullname];
+                                $.each(d.clientIPs, function(ip, bool) {
+                                    tem.push(ip);
+                                });
+                                return tem.join('<br>')
+                            }
+                            if (d.ips) {
+                                var tem = [d.fullname];
+                                $.each(d.ips, function(ip, bool) {
+                                    tem.push(ip);
+                                });
+                                return tem.join('<br>')
+                            }
                             return d.fullname;
                         },
                         class: function(d, i) {
@@ -312,6 +352,8 @@
 
             returnAllData();
 
+            // 事件处理
+            // 这部分的处理比较复杂，涉及各种状态下hover和click的切换
             function eventHandler($el, isHover) {
                 if ($el.attr('opacity') != 1) return;
 
@@ -341,6 +383,7 @@
                 self.refresh(self.changeMap, isHover);
             }
 
+            // 回到点击or hover前的状态
             function returnAllData(isHover) {
                 tooltip.remove();
                 if (isHover && self.lastChangeMap) {
@@ -385,6 +428,7 @@
             });
 
         },
+        // 刷新
         refresh: function(changeMap, isHover) {
             var self = this;
             var cfg = self.__config__;
