@@ -1,4 +1,10 @@
-
+/*
+*   Todo:
+*   - tooltip 名字和ip
+*   - mouseout加timeout，用mouseover取消，避免连续切换的闪烁
+*   - 创建贝塞尔曲线描述的函数
+*   - 整体统计
+* */
 (function(window, $, _, undefined) {
 
     function toSideEnd(data, x, old, whichSide, changeMap, xHandler) {
@@ -36,11 +42,11 @@
         return changeMap;
     }
 
+    var tooltip = $('<div class="vdns-tooltip"></div>');
+
     function VDNS(selector, width, height) {
         return new VDNS.prototype.init(selector, width, height);
     }
-
-    var tooltip = $('<div class="vdns-tooltip"></div>');
 
     VDNS.prototype = {
         constructor: VDNS,
@@ -221,6 +227,9 @@
                     .append('rect')
                     .style('cursor', 'pointer')
                     .attr({
+                        'data-msg': function(d) {
+                            return d.fullname;
+                        },
                         rx: 5,
                         ry: 5,
                         fill: function() {
@@ -260,6 +269,9 @@
                         return d.name;
                     })
                     .attr({
+                        'data-msg': function(d) {
+                            return d.fullname;
+                        },
                         class: function(d, i) {
                             return 'text-' + idx + '-' + i;
                         },
@@ -294,6 +306,20 @@
 
             function eventHandler($el, isHover) {
                 if ($el.attr('opacity') != 1) return;
+
+                // tooltip
+                var p = $el.position();
+                var offsetLeft = 50;
+                if ($el.prop('tagName') == 'rect') {
+                    offsetLeft = 68;
+                }
+                tooltip.appendTo(self.__containerSelector__)
+                    .css({
+                        top: p.top,
+                        left: p.left + offsetLeft
+                    })
+                    .html($el.attr('data-msg'));
+
                 var pi = $el.attr('data-pi') * 1;
                 var i = $el.attr('data-i');
                 var data = $.extend([], self.__sourceData__, true);
