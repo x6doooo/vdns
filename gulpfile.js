@@ -17,11 +17,16 @@ var banner = ['/**',
 gulp.task('build', function () {
     var t = gulp.src(['./src/vdns_format.js', './src/vdns.js'])
         .pipe(concat('vdns.js'))
-        .pipe(uglify())
         .pipe(rename({
-            suffix: '-' + pkg.version + '.min'
+            suffix: '-' + pkg.version + ''
         }))
         .pipe(header(banner, {pkg: pkg}))
+        .pipe(gulp.dest('dist'))
+        .pipe(uglify())
+        .pipe(header(banner, {pkg: pkg}))
+        .pipe(rename({
+            suffix: '.min'
+        }))
         .pipe(gulp.dest('dist'));
     return t;
 });
