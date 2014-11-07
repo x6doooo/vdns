@@ -2,6 +2,7 @@
  *   todo: mouseout加timeout，用mouseover取消，避免连续切换的闪烁
  *   todo: 创建贝塞尔曲线描述的函数
  *   todo: 整体统计
+ *   todo: 现在是点击svg返回全部，改成点击svg或path或opacity不为1的rect和text，都返回全部
  */
 (function(window, $, _, undefined) {
 
@@ -77,7 +78,7 @@
             cfg = cfg || {};
             var lastCfg = this.__config__ || {
                 color: '#fff',
-                duration: 500,
+                duration: 800,
                 ease: 'bounce',
                 circleRadiu: 3,
                 rectStrokeWidth: 1,
