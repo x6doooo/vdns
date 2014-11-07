@@ -1,7 +1,10 @@
 /**
- *   todo: 创建贝塞尔曲线描述的函数
- *   todo: 整体统计
- *   todo: 现在是点击svg返回全部，改成点击svg或path或opacity不为1的rect和text，都返回全部
+ *  todo: 清洗数据，嵌入ab
+ *  todo: ldns ip
+ *  todo: 有跨运营商解析或跨地区解析，做标示
+ *  todo: 只显示跨运营商解析
+ *  todo: 只显示跨地区解析
+ *  todo: 整体统计
  */
 (function(window, $, _, undefined) {
 
@@ -259,14 +262,14 @@
                     .attr({
                         'data-msg': function(d) {
                             if (d.clientIPs) {
-                                var tem = [d.fullname];
+                                var tem = [d.nodeName, '客户端IP：'];
                                 $.each(d.clientIPs, function(ip, bool) {
                                     tem.push(ip);
                                 });
                                 return tem.join('<br>')
                             }
                             if (d.ips) {
-                                var tem = [d.fullname];
+                                var tem = [d.nodeName, '解析IP：'];
                                 $.each(d.ips, function(ip, bool) {
                                     tem.push(ip);
                                 });
@@ -315,14 +318,14 @@
                     .attr({
                         'data-msg': function(d) {
                             if (d.clientIPs) {
-                                var tem = [d.fullname];
+                                var tem = [d.nodeName, '客户端IP：'];
                                 $.each(d.clientIPs, function(ip, bool) {
                                     tem.push(ip);
                                 });
                                 return tem.join('<br>')
                             }
                             if (d.ips) {
-                                var tem = [d.fullname];
+                                var tem = [d.nodeName, '解析IP：'];
                                 $.each(d.ips, function(ip, bool) {
                                     tem.push(ip);
                                 });
@@ -435,6 +438,13 @@
 
             svg.selectAll('path').on('click', function() {
                 returnAllData();
+            });
+            $(document).on('click', function(e) {
+                if (e.target.tagName !== 'HTML') {
+                    return;
+                }
+                returnAllData();
+                return false;
             });
             $(svg[0][0]).on('click', function(e) {
                 if (e.target.tagName !== 'svg') {
