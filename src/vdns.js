@@ -1,10 +1,15 @@
 /**
- *   todo: mouseout加timeout，用mouseover取消，避免连续切换的闪烁
  *   todo: 创建贝塞尔曲线描述的函数
  *   todo: 整体统计
  *   todo: 现在是点击svg返回全部，改成点击svg或path或opacity不为1的rect和text，都返回全部
  */
 (function(window, $, _, undefined) {
+
+    function makeCurveDesc(p0, p1, p2, p4) {
+        return 'M' + p0[0] + ',' + p0[1] + ' ' +
+        'Q' + p1[0] + ',' + p1[1] + ' ' + p2[0] + ',' + p2[1] + ' ' +
+        'T' + p4[0] + ',' + p4[1];
+    }
 
     // 向指定方向查找关联点
     function toSideEnd(data, x, old, whichSide, changeMap, xHandler) {
@@ -203,26 +208,30 @@
                     if (!d.right) return;
                     $.each(d.right, function(n, rIdx) {
 
-                        var p0x = getX(idx) + cfg.rectWidth / 2;
-                        var p0y = getY(i, idx);
-                        var p4x = getX(idx + 1) - cfg.rectWidth / 2;
-                        var p4y = getY(rIdx, idx + 1);
-                        var p2x = (p4x - p0x) / 2 + p0x;
-                        var p2y = (p4y - p0y) / 2 + p0y;
-                        var p1x = (p4x - p0x) / 4 + p0x;
-                        // var p1y = p0y;
+                        var p0 = [
+                            getX(idx) + cfg.rectWidth / 2,
+                            getY(i, idx)
+                        ];
+                        var p4 = [
+                            getX(idx + 1) - cfg.rectWidth / 2,
+                            getY(rIdx, idx + 1)
+                        ];
+                        var p1 = [
+                            (p4[0] - p0[0]) / 4 + p0[0],
+                            p0[1]
+                        ];
+                        var p2 = [
+                            (p4[0] - p0[0]) / 2 + p0[0],
+                            (p4[1] - p0[1]) / 2 + p0[1]
+                        ];
 
                         var inY = getY(0, idx);
-                        var desc =
-                            'M' + p0x + ',' + p0y + ' ' +
-                            'Q' + p1x + ',' + p0y + ' ' + p2x + ',' + p2y + ' ' +
-                            'T' + p4x + ',' + p4y;
-
-                        var initDesc =
-                            'M' + p0x + ',' + inY + ' ' +
-                            'Q' + p1x + ',' + inY + ' ' + p2x + ',' + inY + ' ' +
-                            'T' + p4x + ',' + inY;
-
+                        var desc = makeCurveDesc(p0, p1, p2, p4);
+                        var inP0 = [p0[0], inY];
+                        var inP1 = [p1[0], inY];
+                        var inP2 = [p2[0], inY];
+                        var inP4 = [p4[0], inY];
+                        var initDesc = makeCurveDesc(inP0, inP1, inP2, inP4);
                         g.append('path')
                             .attr({
                                 'data-from-idx': idx,
@@ -356,7 +365,11 @@
             // 事件处理
             // 这部分的处理比较复杂，涉及各种状态下hover和click的切换
             function eventHandler($el, isHover) {
-                if ($el.attr('opacity') != 1) return;
+                if ($el.attr('opacity') != 1) {
+                    if (isHover) return;
+                    returnAllData();
+                    return;
+                }
 
                 // tooltip
                 var p = $el.position();
@@ -420,6 +433,9 @@
                 returnAllData(true);
             });
 
+            svg.selectAll('path').on('click', function() {
+                returnAllData();
+            });
             $(svg[0][0]).on('click', function(e) {
                 if (e.target.tagName !== 'svg') {
                     return;
@@ -531,19 +547,25 @@
                     d: function(d, i, idx) {
                         var from = $(this).attr('data-from-i');
                         var rIdx = $(this).attr('data-to-i');
-                        var p0x = getX(idx) + cfg.rectWidth / 2;
-                        var p0y = getY(from, idx);
-                        var p4x = getX(idx + 1) - cfg.rectWidth / 2;
-                        var p4y = getY(rIdx, idx + 1);
-                        var p2x = (p4x - p0x) / 2 + p0x;
-                        var p2y = (p4y - p0y) / 2 + p0y;
-                        var p1x = (p4x - p0x) / 4 + p0x;
 
-                        var desc =
-                            'M' + p0x + ',' + p0y + ' ' +
-                            'Q' + p1x + ',' + p0y + ' ' + p2x + ',' + p2y + ' ' +
-                            'T' + p4x + ',' + p4y;
-                        return desc;
+                        var p0 = [
+                            getX(idx) + cfg.rectWidth / 2,
+                            getY(from, idx)
+                        ];
+                        var p4 = [
+                            getX(idx + 1) - cfg.rectWidth / 2,
+                            getY(rIdx, idx + 1)
+                        ];
+                        var p1 = [
+                            (p4[0] - p0[0]) / 4 + p0[0],
+                            p0[1]
+                        ];
+                        var p2 = [
+                            (p4[0] - p0[0]) / 2 + p0[0],
+                            (p4[1] - p0[1]) / 2 + p0[1]
+                        ];
+
+                        return makeCurveDesc(p0, p1, p2, p4);
                     }
                 });
         }
