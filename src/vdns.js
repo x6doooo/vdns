@@ -1,11 +1,3 @@
-/**
- *  todo: 清洗数据，嵌入ab
- *  todo: ldns ip
- *  todo: 有跨运营商解析或跨地区解析，做标示
- *  todo: 只显示跨运营商解析
- *  todo: 只显示跨地区解析
- *  todo: 整体统计
- */
 (function(window, $, _, undefined) {
 
     function makeCurveDesc(p0, p1, p2, p4) {
