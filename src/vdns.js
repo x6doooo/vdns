@@ -333,7 +333,7 @@
                             }
                             return d.fullname;
                         },
-                        class: function(d, i) {
+                        'class': function(d, i) {
                             return 'text-' + idx + '-' + i;
                         },
                         x: function(d, i) {
@@ -347,6 +347,7 @@
                             return getY(0, idx);
                         },
                         fill: cfg.color,
+                        //dy: '.3em', // IE下垂直剧中
                         'text-anchor': 'middle',
                         'alignment-baseline': 'middle',
                         'font-size': 12
