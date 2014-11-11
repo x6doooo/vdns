@@ -4,6 +4,7 @@ var uglify = require('gulp-uglify');
 var rename = require('gulp-rename');
 var pkg = require('./package.json');
 var header = require('gulp-header');
+var footer = require('gulp-footer');
 
 var banner = ['/**',
     ' * <%= pkg.name %>',
@@ -15,8 +16,14 @@ var banner = ['/**',
     ''].join('\n');
 
 gulp.task('build', function () {
-    var t = gulp.src(['./src/vdns_format.js', './src/vdns.js'])
+    var t = gulp.src([
+            './src/class.js',
+            './src/class-methods.js', 
+            './src/prototype.js'
+        ])
         .pipe(concat('vdns.js'))
+        .pipe(header('(function(window, $, _, undefined) {'))
+        .pipe(footer('window.vdns = vdns;\n})(window, jQuery, _);'))
         .pipe(rename({
             suffix: '-' + pkg.version + ''
         }))
