@@ -1,4 +1,4 @@
 
-var vdns = function(selector, width, height) {
-    return new vdns.prototype.init(selector, width, height);
+var VDNS = function(selector, width, height) {
+    return new VDNS.prototype.init(selector, width, height);
 };

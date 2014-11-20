@@ -13,8 +13,8 @@ function makeQbezierDesc(p0, p1, p2) {
     return 'M' + p0.join(',') + 'Q' + p1.join(',') + ' ' + p2.join(',');
 }
 
-vdns.prototype = {
-    constructor: vdns,
+VDNS.prototype = {
+    constructor: VDNS,
 
     // 初始化
     init: function(selector, width, height) {
@@ -28,7 +28,7 @@ vdns.prototype = {
         self.svg = self.__container__.append('svg');
         self.svg.attr({
             width: width || 1000,
-            height: height || 800
+            height: height || 700
         });
         self.config();
     },
@@ -37,22 +37,24 @@ vdns.prototype = {
     config: function(cfg) {
         cfg = cfg || {};
         var lastCfg = this.__config__ || {
-                color: '#fff',
-                duration: 800,
-                ease: 'bounce',
-                clientColor: '#08c',
-                resultColor: '#690',
-                rectWidth: 60,
-                rectHeight: 14,
-                rectRadius: 3,
-                boxPadding: 40,
-                lineHeight: 20
-            };
+            color: '#fff',
+            duration: 800,
+            ease: 'bounce',
+            clientColor: '#08c',
+            resultColor: '#690',
+            rectWidth: 60,
+            rectHeight: 14,
+            rectRadius: 3,
+            boxPadding: 40,
+            lineHeight: 20
+        };
+
         this.__config__ = _.assign(lastCfg, cfg);
     },
 
     // 载入数据
     load: function(data) {
+        console.log(data);
         var self = this;
         var svg = self.svg;
 
@@ -117,7 +119,8 @@ vdns.prototype = {
 
         // 环形的坐标是固定的，so 将坐标缓存到数据里
         _.forEach(srcData[0], function(d, i) {
-            d.rad = getRad(getIdxOnRing(i));
+            // 顺序 反向
+            d.rad = getRad(getIdxOnRing(srcData[0].length - i - 1));
             d.xOnRing = getNodeX(d.rad);
             d.yOnRing = getNodeY(d.rad);
         });
@@ -135,25 +138,9 @@ vdns.prototype = {
         g = svg.append('g')
             .style('display', 'none')
             .classed('pathInRing', true);
-        var clientProvinces = srcData[0];
-        var resultProvinces = srcData[1];
-        _.forEach(clientProvinces, function(cpr, idx) {
-            _.forEach(cpr.rightProvinces, function(rprIdx) {
-                g.append('path')
-                    .attr({
-                        d: makeQbezierDesc(
-                            [zeroPointX, zeroPointY],
-                            [zeroPointX, zeroPointY],
-                            [zeroPointX, zeroPointY]
-                        ),
-                        fill: 'none',
-                        stroke: '#ddd',
-                        'stroke-width': 1,
-                        'data-from': idx,
-                        'data-to': rprIdx
-                    })
-            })
-        })
+        g = svg.append('g')
+            .style('display', 'none')
+            .classed('pathInDetail', true);
 
         // rect & text
         g = svg.selectAll('g.shape')
@@ -176,7 +163,14 @@ vdns.prototype = {
                     .data(d)
                     .enter()
                     .append('rect')
+                    .style('cursor', 'pointer')
                     .attr({
+                        'class': function(dd, ii) {
+                            return className[i] + '-' + ii;
+                        },
+                        'data-idx': function(dd, ii) {
+                            return ii;
+                        },
                         fill: background,
                         width: nodeRectDiameter,
                         height: nodeRectDiameter,
@@ -190,10 +184,17 @@ vdns.prototype = {
                     .data(d)
                     .enter()
                     .append('text')
+                    .style('cursor', 'pointer')
                     .text(function(item) {
                         return item.name;
                     })
                     .attr({
+                        'class': function(dd, ii) {
+                            return className[i] + 'Text-' + ii;
+                        },
+                        'data-idx': function(d, i) {
+                            return i;
+                        },
                         'text-anchor': 'middle',
                         'alignment-baseline': 'middle',
                         'font-size': 12,
@@ -214,6 +215,10 @@ vdns.prototype = {
         var srcData = self.__sourceData__;
         var clientG = svg.select('.clientProvinceRect');
         var resultG = svg.select('.resultProvinceRect');
+        var pathG = svg.select('g.pathInRing');
+        // 原点
+        var zeroPointX = cfg.zeroPointX;
+        var zeroPointY = cfg.zeroPointY;
 
         var positionObj = {
             x: function(d) {
@@ -235,32 +240,95 @@ vdns.prototype = {
             }
         };
 
+        var clientProvinces = srcData[0];
+        _.forEach(clientProvinces, function(cpr, idx) {
+            _.forEach(cpr.rightProvinces, function(rprIdx) {
+                pathG.append('path')
+                    .attr({
+                        'class': function() {
+                            return 'pathInRing-client-' + idx + ' pathInRing-result-' + rprIdx;
+                        },
+                        d: makeQbezierDesc(
+                            [zeroPointX, zeroPointY],
+                            [zeroPointX, zeroPointY],
+                            [zeroPointX, zeroPointY]
+                        ),
+                        fill: 'none',
+                        stroke: '#ddd',
+                        'stroke-width': 1,
+                        'data-from': idx,
+                        'data-to': rprIdx
+                    });
+            });
+        });
+
         clientG.style('display', '')
             .selectAll('rect')
             .transition()
+            .ease(cfg.ease)
+            .duration(cfg.duration)
             .attr(positionObjRect);
 
         resultG.style('display', '')
             .selectAll('rect')
             .transition()
+            .ease(cfg.ease)
+            .duration(cfg.duration)
             .attr(positionObjRect);
 
         clientG.selectAll('text')
             .transition()
+            .ease(cfg.ease)
+            .duration(cfg.duration)
             .attr(positionObj);
 
         resultG.selectAll('text')
             .transition()
+            .ease(cfg.ease)
+            .duration(cfg.duration)
             .attr(positionObj);
 
-        var clientProvinces = srcData[0];
+        // 解绑所有事件
+        //svg.selectAll('path').style('display', 'none');
+        svg.selectAll('rect').on('mouseover', null).on('mouseout', null).on('click', null);
+        svg.selectAll('text').on('mouseover', null).on('mouseout', null).on('click', null);
+
+        // 绑定当前状态的事件
+        var opacity = 0.2;
+        function mouseoutHandle() {
+            resultG.selectAll('text').attr('opacity', 1);
+            resultG.selectAll('rect').attr('opacity', 1);
+            clientG.selectAll('text').attr('opacity', 1);
+            clientG.selectAll('rect').attr('opacity', 1);
+            pathG.selectAll('path').style('display', '');
+        }
+        function mouseoverHandle(el, srcDataIdx, tG, tN, fG, fN, forward) {
+            var i = el.attr('data-idx');
+            var d = srcData[srcDataIdx][i];
+            resultG.selectAll('text').attr('opacity', opacity);
+            resultG.selectAll('rect').attr('opacity', opacity);
+            clientG.selectAll('text').attr('opacity', opacity);
+            clientG.selectAll('rect').attr('opacity', opacity);
+            pathG.selectAll('path').style('display', 'none');
+
+            tG.select('.' + tN + 'ProvinceRect-' + i).attr('opacity', 1);
+            tG.select('.' + tN + 'ProvinceRectText-' + i).attr('opacity', 1);
+            pathG.selectAll('.pathInRing-' + tN + '-' + i).style('display', '');
+            _.forEach(d[forward + 'Provinces'], function(ii) {
+                fG.select('.' + fN + 'ProvinceRect-' + ii).attr('opacity', 1);
+                fG.select('.' + fN + 'ProvinceRectText-' + ii).attr('opacity', 1);
+            });
+        }
+        resultG.selectAll('text').on('mouseover', function() {
+            mouseoverHandle($(this), 5, resultG, 'result', clientG, 'client', 'left');
+        }).on('mouseout', mouseoutHandle);
+        clientG.selectAll('text').on('mouseover', function() {
+            mouseoverHandle($(this), 0, clientG, 'client', resultG, 'result', 'right');
+        }).on('mouseout', mouseoutHandle);
+
         var resultProvinces = srcData[5];
-        var rpr;
         var p0;
-        var p1 = [
-            cfg.zeroPointX,
-            cfg.zeroPointY
-        ];
+        var p1 = [ cfg.zeroPointX, cfg.zeroPointY ];
         var p2;
         var path;
 
@@ -268,6 +336,8 @@ vdns.prototype = {
             .style('display', '')
             .selectAll('path')
             .transition()
+            .ease(cfg.ease)
+            .duration(cfg.duration)
             .attr({
                 d: function() {
                     path = d3.select(this);
@@ -284,8 +354,9 @@ vdns.prototype = {
                     return makeQbezierDesc(p0, p1, p2);
                 }
             });
+
     }
 };
 
-vdns.prototype.init.prototype = vdns.prototype;
+VDNS.prototype.init.prototype = VDNS.prototype;
 

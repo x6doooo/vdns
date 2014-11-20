@@ -1,6 +1,6 @@
 
 // 清洗TASK_DATA数据
-vdns.wash = function(taskData) {
+VDNS.wash = function(taskData) {
 
     var clients = {};
     var results = {};
@@ -50,7 +50,7 @@ vdns.wash = function(taskData) {
                 };
             }
 
-            _.forEach(v.ips, function(objIP, i) {
+            _.forEach(v.ips, function(objIP) {
                 clientIspObj.__clientIPs__[v.client_ip] = true;
                 clientIspObj.__resultIPs__[objIP.ip] = true;
                 resultName = objIP.location.replace(/市|省|回族自治区|壮族自治区|维吾尔自治区/g, ';');
@@ -140,7 +140,7 @@ vdns.wash = function(taskData) {
         var temCity;
         var temIsp;
         var temArrIPs;
-        _.forEach(arr, function(d, idx) {
+        _.forEach(arr, function(d) {
             temProvince = {
                 name: subName(d.province),
                 fullname: d.province,
@@ -234,7 +234,7 @@ vdns.wash = function(taskData) {
         province.leftProvinces = [];
         _.forIn(province.connectProvinces, function(bool, pr) {
             province.leftProvinces = province.leftProvinces.concat(provinceMap.left[pr]);
-        })
+        });
         delete province.connectProvinces;
         province.leftProvinces = _.uniq(province.leftProvinces);
     });
