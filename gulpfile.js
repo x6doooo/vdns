@@ -18,7 +18,8 @@ var banner = ['/**',
 gulp.task('build', function () {
     var t = gulp.src([
             './src/class.js',
-            './src/class-methods.js', 
+            './src/class-methods.js',
+            './src/const.js',
             './src/prototype.js'
         ])
         .pipe(concat('vdns.js'))

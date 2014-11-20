@@ -1,18 +1,4 @@
 
-var PI = Math.PI;
-var sin = Math.sin;
-var cos = Math.cos;
-
-// 生成bezier曲线的字符串描述
-function makeTbezierDesc(p0, p1, p2, p4) {
-    return 'M' + p0.join(',') + ' ' +
-        'Q' + p1.join(',') + ' ' + p2.join(',') + ' ' +
-        'T' + p4.join(',');
-}
-function makeQbezierDesc(p0, p1, p2) {
-    return 'M' + p0.join(',') + 'Q' + p1.join(',') + ' ' + p2.join(',');
-}
-
 VDNS.prototype = {
     constructor: VDNS,
 
